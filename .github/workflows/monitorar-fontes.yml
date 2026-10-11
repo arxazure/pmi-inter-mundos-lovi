@@ -1,0 +1,26 @@
+name: Verificar disponibilidade de fontes eleitorais
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 11 * * *'
+permissions:
+  contents: read
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Testar acesso a fonte oficial TSE
+        run: |
+          python - <<'PY'
+          import urllib.request
+          url = 'https://www.tse.jus.br/eleicoes/eleicoes-2026-content/propostas-de-governo-dos-candidatos-ao-cargo-de-presidente-da-republica-eleicoes-2026-segundo-turno'
+          req = urllib.request.Request(url, headers={'User-Agent':'PMI-SourceMonitor/1.0 (research)'})
+          try:
+              with urllib.request.urlopen(req, timeout=25) as response:
+                  print('Fonte TSE HTTP:',response.status)
+                  assert response.status == 200
+          except Exception as exc:
+              raise SystemExit('Falha ao verificar fonte oficial: '+str(exc))
+          PY
+      - name: Relatório
+        run: echo 'A verificação testa apenas disponibilidade da página. Não comprova alterações de conteúdo nem publica auditorias automaticamente.'
