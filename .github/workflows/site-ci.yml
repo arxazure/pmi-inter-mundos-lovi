@@ -1,0 +1,55 @@
+name: PMI31 - Verificar site em cada atualizacao
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.html'
+      - '**.css'
+      - '**.js'
+      - 'assets/**'
+      - '.github/workflows/site-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pmi31-site-main
+  cancel-in-progress: true
+jobs:
+  validar:
+    name: Validar arquivos antes da implantacao Hostinger
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar arquivos e links locais
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, sys
+          files=list(Path('.').glob('*.html'))
+          if not Path('index.html').exists():
+              sys.exit('index.html ausente')
+          failures=[]
+          for file in files:
+              text=file.read_text(encoding='utf-8')
+              for url in re.findall(r'(?:href|src)=["\x27]([^"\x27]+)',text):
+                  if url.startswith(('http:','https:','#','mailto:','tel:','data:','javascript:')):
+                      continue
+                  path=Path(url.split('#')[0].split('?')[0])
+                  if str(path) and not path.exists():
+                      failures.append(f'{file}: {url} ausente')
+          if failures:
+              sys.exit('\n'.join(failures))
+          print('Arquivos locais OK:',len(files),'paginas HTML')
+          PY
+      - name: Conferir endereco publico (informativo)
+        if: success()
+        shell: bash
+        run: |
+          url="https://salmon-quail-451428.hostingersite.com/"
+          code=$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 30 "$url" || true)
+          echo "HTTP do site Hostinger: $code"
+          echo "A hospedagem deve estar configurada no painel Hostinger para fazer redeploy automaticamente ao receber push na branch main."
+          if [ "$code" != "200" ]; then
+            echo "::warning::Site ainda nao retornou HTTP 200. Verifique deploy ou dominio."
+          fi
