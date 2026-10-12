@@ -1,0 +1,30 @@
+name: Radar Eleicoes 2026 - Tres rodadas diarias
+on:
+  workflow_dispatch:
+  schedule:
+    # Brasilia UTC-3: 08:05, 13:05, 19:05
+    - cron: '5 11,16,22 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: radar-eleicoes-2026
+  cancel-in-progress: false
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Ler fonte TSE e preparar publicacao com fonte verificavel
+        run: python scripts/radar_eleicoes_2026.py
+      - name: Commit quando houver nova noticia
+        run: |
+          git config user.name "PMI31 Radar Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add radar-eleicoes-2026/ radar-eleicoes-2026.html sitemap.xml
+          if ! git diff --cached --quiet; then
+            git commit -m "Radar Eleicoes 2026: nova nota baseada no TSE"
+            git push
+          fi
