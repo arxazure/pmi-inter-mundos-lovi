@@ -1,8 +1,8 @@
-# PMI31 — implantação segura do cadastro de manifestações de apoio
+# PBU31 — implantação segura do cadastro de manifestações de apoio
 
 **Status:** código preparado; NÃO ativado até configurar banco MySQL, email de domínio validado, segurança e documentação LGPD. Não chamar de assinatura gov.br, assinatura ICP-Brasil nem votação oficial.
 
-1. Configurar no Hostinger Web Hosting Business um banco MySQL exclusivo PMI31, usuário com privilégios restritos e senha forte.
+1. Configurar no Hostinger Web Hosting Business um banco MySQL exclusivo PBU31, usuário com privilégios restritos e senha forte.
 2. Executar `api/schema.sql` no banco isolado.
 3. Criar no servidor `api/config.local.php` a partir de `config.example.php`; usar chaves aleatórias, endereço HTTPS definitivo, remetente de email efetivamente autorizado; nunca versionar esse arquivo.
 4. Verificar extensões PHP `pdo_mysql` e `sodium`. Ajustar SMTP/remetente no servidor; o protótipo usa `mail()` somente se o envio estiver configurado.
