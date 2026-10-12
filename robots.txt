@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://salmon-quail-451428.hostingersite.com/sitemap.xml
