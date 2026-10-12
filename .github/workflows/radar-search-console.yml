@@ -1,0 +1,45 @@
+name: Radar PMI31 - Search Console diario
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '27 10 * * *'
+permissions:
+  contents: write
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checar segredos da integracao
+        env:
+          GSC_PROPERTY: ${{ secrets.GSC_PROPERTY }}
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GSC_PROPERTY" ] || [ -z "$GSC_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::notice::Radar em espera - configure os segredos GSC_PROPERTY e GSC_SERVICE_ACCOUNT_JSON."
+            exit 0
+          fi
+          echo "ok" > /tmp/radar-ready
+      - uses: actions/setup-python@v5
+        if: ${{ hashFiles('.github/workflows/radar-search-console.yml') != '' }}
+        with:
+          python-version: '3.12'
+      - name: Instalar clientes Google
+        run: pip install 'google-auth>=2.28,<3' 'requests>=2.31,<3'
+      - name: Coletar consultas e paginas
+        env:
+          GSC_PROPERTY: ${{ secrets.GSC_PROPERTY }}
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ ! -f /tmp/radar-ready ]; then exit 0; fi
+          python scripts/coletar_search_console.py
+      - name: Enviar medicoes ao repositorio
+        run: |
+          if [ ! -f data/search-console.json ]; then exit 0; fi
+          git config user.name "PMI31 Radar Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/search-console.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Atualizar indicadores GSC do Radar PMI31"
+            git push
+          fi
