@@ -1,0 +1,59 @@
+name: PMI31 - Publicar na Hostinger
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*.html'
+      - '*.css'
+      - '*.js'
+      - 'assets/**'
+      - '.github/workflows/deploy-hostinger.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-pmi31-hostinger
+  cancel-in-progress: true
+jobs:
+  deploy:
+    name: Deploy isolado PMI31
+    runs-on: ubuntu-latest
+    env:
+      FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+      FTP_REMOTE_DIR: ${{ secrets.HOSTINGER_REMOTE_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar configuracao e impedir destino inseguro
+        shell: bash
+        run: |
+          test -n "$FTP_SERVER" || { echo "::error::Configure HOSTINGER_FTP_SERVER"; exit 1; }
+          test -n "$FTP_USERNAME" || { echo "::error::Configure HOSTINGER_FTP_USERNAME"; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo "::error::Configure HOSTINGER_FTP_PASSWORD"; exit 1; }
+          test -n "$FTP_REMOTE_DIR" || { echo "::error::Configure HOSTINGER_REMOTE_DIR"; exit 1; }
+          case "$FTP_REMOTE_DIR" in
+            /*/) ;;
+            *) echo "::error::HOSTINGER_REMOTE_DIR deve ser caminho absoluto encerrado em /"; exit 1;;
+          esac
+          case "$FTP_REMOTE_DIR" in
+            /|/public_html/|/domains/|/domains/*/public_html/) echo "::error::Destino generico bloqueado: indique diretorio EXCLUSIVO do site PMI31"; exit 1;;
+          esac
+          test -f index.html
+      - name: Preparar apenas arquivos publicos
+        run: |
+          mkdir -p dist
+          cp -f -- *.html *.css dist/
+          if compgen -G "*.js" > /dev/null; then cp -f -- *.js dist/; fi
+          if [ -d assets ]; then cp -R assets dist/; fi
+      - name: Enviar para diretorio exclusivo PMI31
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ${{ secrets.HOSTINGER_REMOTE_DIR }}
+          dangerous-clean-slate: false
