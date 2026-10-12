@@ -1,13 +1,7 @@
+# Hostinger native Git deploy is the automatic publisher.
+# This optional FTP recovery workflow can only run manually to prevent competing deployments.
 name: PMI31 - Publicar na Hostinger
 on:
-  push:
-    branches: [main]
-    paths:
-      - '*.html'
-      - '*.css'
-      - '*.js'
-      - 'assets/**'
-      - '.github/workflows/deploy-hostinger.yml'
   workflow_dispatch:
 permissions:
   contents: read
